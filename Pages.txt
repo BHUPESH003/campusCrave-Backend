@@ -1,0 +1,52 @@
+CONSTANT components
+Header component
+    -navlinks
+        -searchbar
+            -cartIcon
+                -wishlisht
+                    -profile
+
+Footer Components
+    -sociallinks
+        -categories and get to know //can be made as one component too.
+            -Updates Component
+
+
+CHATBOAT Component
+
+
+COMPONENTS according to PAGES:
+HOME PAGE:
+ -Slider Component
+   -Products Slider Component // Can be used any no of times in the home page only according to requirement.
+        -Promotions Component
+            -Hero Component
+                -Blogs Section 
+                    -Insta Peeks Section
+
+
+PLAY PAGE:
+    -Product Overview Component
+
+BESTSELLER PAGE, SHOP BY AGE, SOFT TOYS, WOODEN TOYS, ROLE PLAY, ACTIVITY, EDUCATIONAL, BUILD YOUR ANIMAL
+    -Product Overview Same component
+
+Product Details Page:
+    -Product Details Component
+        -Product Reviews Section Component
+            -Related Products Component
+                -Shopping Cart Component
+                    -Checkout Component
+
+User Components
+    -Sign In Component
+        -Sign Up Component
+            -My Account Component
+                -My Orders Component
+                    -Contact Us Component
+
+Other Components:
+    -About Us Component
+        -And Faqs Component
+            -Blogs Component
+                -Facts and Filters Component
