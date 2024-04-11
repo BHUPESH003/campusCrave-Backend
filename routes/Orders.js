@@ -20,34 +20,38 @@ orders.get("/:username", async (req, res) => {
     // Query to fetch orders for the specified username
     const query = `
     SELECT 
-        po.id,
-        po.order_time,
-        po.food_ready_time,
-        po.price,
-        po.comment,
-        po.vendor_id,
-        po.created_at,
-        po.payment_id,
-        po.payment_status,
-        po.username,
-        json_agg(json_build_object('item_id', oi.itemid, 'item_name', oi.itemname, 'item_price', oi.price, 'quantity', oi.quantity)) AS items
-    FROM 
-        placed_order po
-    JOIN 
+    po.id,
+    po.order_time,
+    po.food_ready_time,
+    po.price,
+    po.comment,
+    po.vendor_id,
+    po.created_at,
+    po.payment_id,
+    po.payment_status,
+    po.username,
+    v.vendor_name,  -- Include vendor details from the vendors table
+    json_agg(json_build_object('item_id', oi.itemid, 'item_name', oi.itemname, 'item_price', oi.price, 'quantity', oi.quantity)) AS items
+FROM 
+    placed_order po
+JOIN 
+    vendors v ON po.vendor_id = v.vendor_id  -- Join with vendors table
+JOIN 
     itemsordered oi ON po.id = oi.orderid
-    WHERE 
-        po.username = $1
-    GROUP BY 
-        po.id,
-        po.order_time,
-        po.food_ready_time,
-        po.price,
-        po.comment,
-        po.vendor_id,
-        po.created_at,
-        po.payment_id,
-        po.payment_status,
-        po.username;
+WHERE 
+    po.username = $1
+GROUP BY 
+    po.id,
+    po.order_time,
+    po.food_ready_time,
+    po.price,
+    po.comment,
+    po.vendor_id,
+    po.created_at,
+    po.payment_id,
+    po.payment_status,
+    po.username,
+    v.vendor_name;  -- Group by vendor details
   `;
 
     // Execute the query
