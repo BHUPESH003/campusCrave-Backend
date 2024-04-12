@@ -2,6 +2,7 @@ const express = require("express");
 const orders = express.Router();
 
 const client = require("../config/index");
+const { verifyToken } = require("../MiddleWares/authMiddleWare");
 
 const { authenticateToken } = require("../MiddleWares/authMiddleWare");
 
@@ -12,7 +13,7 @@ function calculateAverageRating(ratings) {
   const totalRating = ratings.reduce((acc, rating) => acc + rating.rating, 0);
   return totalRating / ratings.length;
 }
-orders.get("/:username", async (req, res) => {
+orders.get("/:username",authenticateToken, async (req, res) => {
   try {
     // Extract username from request parameters
     const { username } = req.params;
@@ -31,6 +32,8 @@ orders.get("/:username", async (req, res) => {
     po.payment_status,
     po.username,
     v.vendor_name,  -- Include vendor details from the vendors table
+    vr.comment as orderReview,
+    vr.overall_rating,
     json_agg(json_build_object('item_id', oi.itemid, 'item_name', oi.itemname, 'item_price', oi.price, 'quantity', oi.quantity)) AS items
 FROM 
     placed_order po
@@ -38,6 +41,8 @@ JOIN
     vendors v ON po.vendor_id = v.vendor_id  -- Join with vendors table
 JOIN 
     itemsordered oi ON po.id = oi.orderid
+    JOIN
+    vendor_ratings vr ON po.id=vr.order_id
 WHERE 
     po.username = $1
 GROUP BY 
@@ -51,7 +56,9 @@ GROUP BY
     po.payment_id,
     po.payment_status,
     po.username,
-    v.vendor_name;  -- Group by vendor details
+    v.vendor_name,
+    vr.overall_rating,
+    vr.comment;
   `;
 
     // Execute the query
@@ -64,7 +71,7 @@ GROUP BY
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-orders.get("/vendorOrders/:vendorId", async (req, res) => {
+orders.get("/vendorOrders/:vendorId",verifyToken, async (req, res) => {
   try {
     // Extract username from request parameters
     const { vendorId } = req.params;
@@ -82,11 +89,15 @@ orders.get("/vendorOrders/:vendorId", async (req, res) => {
         po.payment_id,
         po.payment_status,
         po.username,
+        vr.overall_rating,
+        vr.comment as orderReview,
         json_agg(json_build_object('item_id', oi.itemid, 'item_name', oi.itemname, 'item_price', oi.price, 'quantity', oi.quantity)) AS items
     FROM 
         placed_order po
     JOIN 
     itemsordered oi ON po.id = oi.orderid
+    JOIN 
+    vendor_ratings vr ON po.id=vr.order_id
     WHERE 
         po.vendor_id = $1
     GROUP BY 
@@ -99,7 +110,9 @@ orders.get("/vendorOrders/:vendorId", async (req, res) => {
         po.created_at,
         po.payment_id,
         po.payment_status,
-        po.username;
+        po.username,
+        vr.overall_rating,
+        vr.comment;
   `;
 
     // Execute the query
