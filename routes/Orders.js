@@ -41,7 +41,7 @@ JOIN
     vendors v ON po.vendor_id = v.vendor_id  -- Join with vendors table
 JOIN 
     itemsordered oi ON po.id = oi.orderid
-    JOIN
+    LEFT JOIN
     vendor_ratings vr ON po.id=vr.order_id
 WHERE 
     po.username = $1
