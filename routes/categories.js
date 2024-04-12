@@ -56,17 +56,42 @@ categoriesRouter.post("/", authenticateToken, async (req, res) => {
   }
 });
 
+// categoriesRouter.get("/:categoryId/menuItems", async (req, res) => {
+//   const categoryId = req.params.categoryId;
+
+//   try {
+//     const result = await client.query(
+//       `SELECT menu_items.*, vendors.vendor_name,vendors.avg_time as avg_time, vendor_ratings.Overall_Rating as vendor_rating, item_ratings.Item_Rating as item_rating
+//       FROM menu_items 
+//       INNER JOIN vendors ON menu_items.vendor_id = vendors.vendor_id
+//       LEFT JOIN vendor_ratings ON vendors.vendor_id = vendor_ratings.vendor_id
+//       LEFT JOIN item_ratings ON menu_items.Item_ID = item_ratings.Item_ID
+//       WHERE menu_items.category_id = $1`,
+//       [categoryId]
+//     );
+
+//     const menuItems = result.rows;
+
+//     res.json(menuItems);
+//   } catch (err) {
+//     console.error("Error executing query", err);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
 categoriesRouter.get("/:categoryId/menuItems", async (req, res) => {
   const categoryId = req.params.categoryId;
 
   try {
     const result = await client.query(
-      `SELECT menu_items.*, vendors.vendor_name,vendors.avg_time as avg_time, vendor_ratings.Overall_Rating as vendor_rating, item_ratings.Item_Rating as item_rating
-      FROM menu_items 
-      INNER JOIN vendors ON menu_items.vendor_id = vendors.vendor_id
-      LEFT JOIN vendor_ratings ON vendors.vendor_id = vendor_ratings.vendor_id
-      LEFT JOIN item_ratings ON menu_items.Item_ID = item_ratings.Item_ID
-      WHERE menu_items.category_id = $1`,
+      `SELECT menu_items.*, 
+              vendors.vendor_name,
+              vendors.avg_time AS avg_time, 
+              AVG(vendor_ratings.Overall_Rating) AS vendor_rating
+       FROM menu_items 
+       INNER JOIN vendors ON menu_items.vendor_id = vendors.vendor_id
+       LEFT JOIN vendor_ratings ON vendors.vendor_id = vendor_ratings.vendor_id
+       WHERE menu_items.category_id = $1
+       GROUP BY menu_items.Item_ID, vendors.vendor_name, vendors.avg_time;`,
       [categoryId]
     );
 
@@ -78,4 +103,6 @@ categoriesRouter.get("/:categoryId/menuItems", async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 });
+
+
 module.exports = categoriesRouter;

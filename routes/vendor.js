@@ -155,12 +155,27 @@ vendorRouter.post("/register", async (req, res) => {
   }
 });
 
+// vendorRouter.get("/all", async (req, res) => {
+//   try {
+//     const result = await client.query(`
+//       SELECT vendors.*, vendor_ratings.Overall_Rating
+//       FROM vendors
+//       LEFT JOIN vendor_ratings ON vendors.Vendor_ID = vendor_ratings.Vendor_ID;
+//     `);
+
+//     res.json(result.rows);
+//   } catch (error) {
+//     console.error("Error fetching vendors with ratings:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 vendorRouter.get("/all", async (req, res) => {
   try {
     const result = await client.query(`
-      SELECT vendors.*, vendor_ratings.Overall_Rating
+      SELECT vendors.*, AVG(vendor_ratings.overall_rating) AS average_rating
       FROM vendors
-      LEFT JOIN vendor_ratings ON vendors.Vendor_ID = vendor_ratings.Vendor_ID;
+      LEFT JOIN vendor_ratings ON vendors.Vendor_ID = vendor_ratings.Vendor_ID
+      GROUP BY vendors.Vendor_ID;
     `);
 
     res.json(result.rows);
@@ -169,6 +184,7 @@ vendorRouter.get("/all", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 // Get details of one specific vendor by ID
 
 vendorRouter.get("/:vendorId/items", async (req, res) => {

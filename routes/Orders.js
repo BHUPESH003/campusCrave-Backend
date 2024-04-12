@@ -3,7 +3,7 @@ const orders = express.Router();
 
 const client = require("../config/index");
 
-const {authenticateToken} = require("../MiddleWares/authMiddleWare");
+const { authenticateToken } = require("../MiddleWares/authMiddleWare");
 
 // Function to calculate the average rating from an array of item ratings
 function calculateAverageRating(ratings) {
@@ -68,7 +68,6 @@ orders.get("/vendorOrders/:vendorId", async (req, res) => {
   try {
     // Extract username from request parameters
     const { vendorId } = req.params;
-   
 
     // Query to fetch orders for the specified username
     const query = `
@@ -183,6 +182,55 @@ orders.get("/vendorOrders/:vendorId", async (req, res) => {
 //   }
 // });
 
+// orders.post("/:orderId/review", authenticateToken, async (req, res) => {
+//   const orderId = req.params.orderId;
+
+//   const { rating, comment } = req.body; // rating should be a single value representing the overall order rating
+
+//   try {
+//     await client.query("BEGIN");
+
+//     // Check if review for this order already exists
+//     const existingReviewQuery = `
+//       SELECT * FROM vendor_ratings WHERE order_id = $1;
+//     `;
+//     const existingReviewResult = await client.query(existingReviewQuery, [orderId]);
+
+//     if (existingReviewResult.rows.length > 0) {
+//       await client.query("ROLLBACK");
+//       return res.status(400).json({ error: "Review for this order already exists" });
+//     }
+
+//     // Get vendor ID and user ID from the placed_order table
+//     const orderDetailsQuery = `
+//         SELECT vendor_id, userName FROM placed_order WHERE id = $1;
+//       `;
+//     const orderDetailsResult = await client.query(orderDetailsQuery, [orderId]);
+//     const { vendor_id: vendorId, userName: userId } = orderDetailsResult.rows[0];
+
+//     // Insert review into the vendor_ratings table
+//     const reviewQuery = `
+//         INSERT INTO vendor_ratings (order_id, vendor_id, overall_rating, comment)
+//         VALUES ($1, $2, $3, $4)
+//         RETURNING *;
+//       `;
+//     const reviewResult = await client.query(reviewQuery, [
+//       orderId,
+//       vendorId,
+//       rating,
+//       comment,
+//     ]);
+
+//     await client.query("COMMIT");
+
+//     res.status(201).json(reviewResult.rows[0]); // Respond with the newly created review
+//   } catch (error) {
+//     console.error("Error posting review:", error);
+//     await client.query("ROLLBACK");
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
 orders.post("/:orderId/review", authenticateToken, async (req, res) => {
   const orderId = req.params.orderId;
 
@@ -191,25 +239,89 @@ orders.post("/:orderId/review", authenticateToken, async (req, res) => {
   try {
     await client.query("BEGIN");
 
+    // Check if review for this order already exists
+    const existingReviewQuery = `
+      SELECT * FROM vendor_ratings WHERE order_id = $1;
+    `;
+    const existingReviewResult = await client.query(existingReviewQuery, [
+      orderId,
+    ]);
+
+    if (existingReviewResult.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res
+        .status(400)
+        .json({ error: "Review for this order already exists" });
+    }
+
     // Get vendor ID and user ID from the placed_order table
     const orderDetailsQuery = `
-        SELECT vendor_id, userName FROM placed_order WHERE id = $1;
-      `;
+      SELECT vendor_id, userName FROM placed_order WHERE id = $1;
+    `;
     const orderDetailsResult = await client.query(orderDetailsQuery, [orderId]);
-    const { vendor_id: vendorId, userName: userId } = orderDetailsResult.rows[0];
+    const { vendor_id: vendorId, userName: userId } =
+      orderDetailsResult.rows[0];
 
     // Insert review into the vendor_ratings table
     const reviewQuery = `
-        INSERT INTO vendor_ratings (order_id, vendor_id, overall_rating, comment)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *;
-      `;
+      INSERT INTO vendor_ratings (order_id, vendor_id, overall_rating, comment)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *;
+    `;
     const reviewResult = await client.query(reviewQuery, [
       orderId,
       vendorId,
       rating,
       comment,
     ]);
+
+    // Get items associated with the order
+    const orderItemsQuery = `
+      SELECT itemid FROM itemsordered WHERE orderid = $1;
+    `;
+    const orderItemsResult = await client.query(orderItemsQuery, [orderId]);
+    const itemIds = orderItemsResult.rows.map((row) => row.itemid);
+    console.log(itemIds);
+    // Calculate average rating for each item and update the menu_items table
+    // Calculate average rating for each item and update the menu_items table
+    const updateItemRatingsPromises = itemIds.map(async (itemId) => {
+      console.log("itemsId", itemId);
+      const itemRatingQuery = `
+      SELECT overall_rating FROM vendor_ratings WHERE order_id = $1 AND vendor_id = $2;
+  `;
+      const itemRatingResult = await client.query(itemRatingQuery, [
+        orderId,
+        vendorId,
+      ]);
+      const ratings = itemRatingResult.rows.map((row) => row.overall_rating);
+      const totalRatings = ratings.reduce((acc, cur) => acc + cur, 0);
+      const numberOfRatings = ratings.length;
+
+      // Get the existing average rating for the item
+      const existingAvgRatingQuery = `
+      SELECT avg_rating FROM menu_items WHERE item_id = $1;
+  `;
+      const existingAvgRatingResult = await client.query(
+        existingAvgRatingQuery,
+        [itemId]
+      );
+      const existingAvgRating = existingAvgRatingResult.rows[0].avg_rating;
+
+      // Calculate new average rating
+      const newAvgRating =
+        (existingAvgRating * numberOfRatings + totalRatings) /
+        (numberOfRatings + 1);
+      console.log("itemRating", newAvgRating);
+
+      const updateItemRatingQuery = `
+      UPDATE menu_items
+      SET avg_rating = $1
+      WHERE item_id = $2;
+  `;
+      await client.query(updateItemRatingQuery, [newAvgRating, itemId]);
+    });
+
+    await Promise.all(updateItemRatingsPromises);
 
     await client.query("COMMIT");
 
