@@ -298,7 +298,7 @@ orders.post("/:orderId/review", authenticateToken, async (req, res) => {
     // Calculate average rating for each item and update the menu_items table
     // Calculate average rating for each item and update the menu_items table
     const updateItemRatingsPromises = itemIds.map(async (itemId) => {
-      console.log("itemsId", itemId);
+     
       const itemRatingQuery = `
       SELECT overall_rating FROM vendor_ratings WHERE order_id = $1 AND vendor_id = $2;
   `;

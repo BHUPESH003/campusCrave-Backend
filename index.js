@@ -61,8 +61,8 @@ app.post("/create-checkout-session", async (req, res) => {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
-      success_url: "https://campuscrave.netlify.app/success", // URL to redirect after successful payment
-      cancel_url: "https://campuscrave.netlify.app/failed", // URL to redirect after payment cancellation
+      success_url: "https://campuscrave.netlify.app", // URL to redirect after successful payment
+      cancel_url: "https://campuscrave.netlify.app", // URL to redirect after payment cancellation
       metadata: {
         orderId: orderId, // Include orderId in metadata
       },
